@@ -5,8 +5,6 @@ import (
 	"study-quest-backend/internal/model"
 	"sync"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // Interfaces
@@ -65,17 +63,17 @@ func NewMemoryTaskRepository() *MemoryTaskRepository {
 		logCounter: 1,
 	}
 	// Seed Data
-	repo.tasks[1] = &model.Task{Model: gorm.Model{ID: 1}, Title: "完成数学作业", Points: 30, Type: 1}
-	repo.tasks[2] = &model.Task{Model: gorm.Model{ID: 2}, Title: "整理房间", Points: 20, Type: 2}
+	repo.tasks[1] = &model.Task{ID: 1, Title: "完成数学作业", Points: 30, Type: 1, CreatedAt: time.Now()}
+	repo.tasks[2] = &model.Task{ID: 2, Title: "整理房间", Points: 20, Type: 2, CreatedAt: time.Now()}
 	
 	// Assign tasks to student (log w/ status 0)
 	repo.taskLogs[1] = &model.TaskLog{
-		Model: gorm.Model{ID: 1}, StudentID: 1, TaskID: 1, Status: 0, 
-		Task: *repo.tasks[1],
+		ID: 1, StudentID: 1, TaskID: 1, Status: 0, 
+		Task: *repo.tasks[1], CreatedAt: time.Now(),
 	}
 	repo.taskLogs[2] = &model.TaskLog{
-		Model: gorm.Model{ID: 2}, StudentID: 1, TaskID: 2, Status: 0,
-		Task: *repo.tasks[2],
+		ID: 2, StudentID: 1, TaskID: 2, Status: 0,
+		Task: *repo.tasks[2], CreatedAt: time.Now(),
 	}
 	repo.logCounter = 3
 	repo.idCounter = 3
@@ -140,7 +138,7 @@ func (r *MemoryTaskRepository) SubmitTask(studentID uint, taskID uint) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, log := range r.taskLogs {
-		if log.StudentID == studentID && log.Model.ID == taskID && log.Status == 0 {
+		if log.StudentID == studentID && log.ID == taskID && log.Status == 0 {
 			log.Status = 1 // Pending
 			now := time.Now()
 			log.SubmittedAt = &now
@@ -197,11 +195,12 @@ func (r *MemoryTaskRepository) AssignTaskToStudent(studentID uint, taskID uint) 
 	}
 	
 	log := &model.TaskLog{
-		Model:     gorm.Model{ID: r.logCounter},
+		ID:        r.logCounter,
 		StudentID: studentID,
 		TaskID:    taskID,
 		Status:    0, // Todo
 		Task:      *task,
+		CreatedAt: time.Now(),
 	}
 	r.taskLogs[r.logCounter] = log
 	r.logCounter++
@@ -225,7 +224,7 @@ func NewMemoryUserRepository() *MemoryUserRepository {
 	
 	// Seed data: Create demo users
 	demoStudent := &model.User{
-		Model: gorm.Model{ID: 1}, 
+		ID: 1,
 		Username: "student1", 
 		Password: "123456",
 		Role: "student",
@@ -233,14 +232,16 @@ func NewMemoryUserRepository() *MemoryUserRepository {
 		FamilyID: 1,
 		RealName: "小明",
 		Grade: 3,
+		CreatedAt: time.Now(),
 	}
 	demoParent := &model.User{
-		Model: gorm.Model{ID: 2}, 
+		ID: 2,
 		Username: "parent1", 
 		Password: "123456",
 		Role: "parent",
 		Points: 0,
 		FamilyID: 1,
+		CreatedAt: time.Now(),
 		RealName: "李妈妈",
 	}
 	

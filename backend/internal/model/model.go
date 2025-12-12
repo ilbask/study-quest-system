@@ -2,31 +2,39 @@ package model
 
 import (
 	"time"
-	"gorm.io/gorm"
 )
 
 type User struct {
-	gorm.Model
-	Username string `json:"username"`
-	Password string `json:"-"` // 不在 JSON 中返回
-	Role     string `json:"role"` // 'parent', 'student'
-	Points   int    `json:"points"`
-	Avatar   string `json:"avatar"`
-	FamilyID uint   `json:"family_id"` // 家庭组ID
-	Grade    int    `json:"grade"` // 年级（学生）
-	RealName string `json:"real_name"` // 真实姓名
+	ID        uint       `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+	Username  string     `json:"username"`
+	Password  string     `json:"-"` // 不在 JSON 中返回
+	Role      string     `json:"role"` // 'parent', 'student'
+	Points    int        `json:"points"`
+	Avatar    string     `json:"avatar"`
+	FamilyID  uint       `json:"family_id"` // 家庭组ID
+	Grade     int        `json:"grade"` // 年级（学生）
+	RealName  string     `json:"real_name"` // 真实姓名
 }
 
 type Task struct {
-	gorm.Model
-	Title      string `json:"title"`
-	Points     int    `json:"points"`
-	Type       int    `json:"type"` // 1:Study, 2:Chore, 3:Habit
-	Recurrence string `json:"recurrence"`
+	ID         uint       `gorm:"primarykey" json:"id"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	DeletedAt  *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+	Title      string     `json:"title"`
+	Points     int        `json:"points"`
+	Type       int        `json:"type"` // 1:Study, 2:Chore, 3:Habit
+	Recurrence string     `json:"recurrence"`
 }
 
 type TaskLog struct {
-	gorm.Model
+	ID          uint       `gorm:"primarykey" json:"id"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	DeletedAt   *time.Time `gorm:"index" json:"deleted_at,omitempty"`
 	StudentID   uint       `json:"student_id"`
 	TaskID      uint       `json:"task_id"`
 	Status      int        `json:"status"` // 0:InProgress, 1:Pending, 2:Done, 3:Rejected
@@ -47,13 +55,16 @@ type Reward struct {
 }
 
 type Redemption struct {
-	gorm.Model
-	StudentID   uint   `json:"student_id"`
-	RewardID    uint   `json:"reward_id"`
-	RewardTitle string `json:"reward_title"` // Store title for display
-	Cost        int    `json:"cost"`
-	Student     User   `json:"student" gorm:"foreignKey:StudentID"`
-	Reward      Reward `json:"reward" gorm:"foreignKey:RewardID"`
+	ID          uint       `gorm:"primarykey" json:"id"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	DeletedAt   *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+	StudentID   uint       `json:"student_id"`
+	RewardID    uint       `json:"reward_id"`
+	RewardTitle string     `json:"reward_title"` // Store title for display
+	Cost        int        `json:"cost"`
+	Student     User       `json:"student" gorm:"foreignKey:StudentID"`
+	Reward      Reward     `json:"reward" gorm:"foreignKey:RewardID"`
 }
 
 type AppConfig struct {

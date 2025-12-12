@@ -603,7 +603,7 @@
             // 安全获取任务信息
             const taskTitle = task.task?.title || task.Task?.title || '未知任务';
             const taskPoints = task.task?.points || task.Task?.points || 0;
-            const taskId = task.ID || task.id;
+            const taskId = task.id;
             
             let actionBtn = '';
             if (task.status === 0) {
