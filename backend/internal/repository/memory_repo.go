@@ -22,7 +22,17 @@ type ITaskRepository interface {
 
 type IUserRepository interface {
 	GetUser(id uint) (*model.User, error)
+	GetUserByUsername(username string) (*model.User, error)
+	CreateUser(user *model.User) error
 	AddPoints(userID uint, points int) error
+	GetStudentsByFamily(familyID uint) ([]model.User, error)
+	GetTopStudents(limit int) ([]model.User, error)
+}
+
+type ISessionRepository interface {
+	CreateSession(session *model.Session) error
+	GetSession(token string) (*model.Session, error)
+	DeleteSession(token string) error
 }
 
 // Memory Implementation
@@ -161,15 +171,46 @@ func (r *MemoryTaskRepository) RejectTask(logID uint) error {
 // Memory User Repo
 type MemoryUserRepository struct {
 	users map[uint]*model.User
+	usersByUsername map[string]*model.User
+	idCounter uint
 	mu sync.Mutex
 }
 
 func NewMemoryUserRepository() *MemoryUserRepository {
-	return &MemoryUserRepository{
-		users: map[uint]*model.User{
-			1: {Model: gorm.Model{ID: 1}, Username: "Student", Points: 100},
-		},
+	repo := &MemoryUserRepository{
+		users: make(map[uint]*model.User),
+		usersByUsername: make(map[string]*model.User),
+		idCounter: 1,
 	}
+	
+	// Seed data: Create demo users
+	demoStudent := &model.User{
+		Model: gorm.Model{ID: 1}, 
+		Username: "student1", 
+		Password: "123456",
+		Role: "student",
+		Points: 100,
+		FamilyID: 1,
+		RealName: "小明",
+		Grade: 3,
+	}
+	demoParent := &model.User{
+		Model: gorm.Model{ID: 2}, 
+		Username: "parent1", 
+		Password: "123456",
+		Role: "parent",
+		Points: 0,
+		FamilyID: 1,
+		RealName: "李妈妈",
+	}
+	
+	repo.users[1] = demoStudent
+	repo.users[2] = demoParent
+	repo.usersByUsername["student1"] = demoStudent
+	repo.usersByUsername["parent1"] = demoParent
+	repo.idCounter = 3
+	
+	return repo
 }
 
 func (r *MemoryUserRepository) GetUser(id uint) (*model.User, error) {
@@ -181,6 +222,31 @@ func (r *MemoryUserRepository) GetUser(id uint) (*model.User, error) {
 	return nil, errors.New("user not found")
 }
 
+func (r *MemoryUserRepository) GetUserByUsername(username string) (*model.User, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if u, ok := r.usersByUsername[username]; ok {
+		return u, nil
+	}
+	return nil, errors.New("user not found")
+}
+
+func (r *MemoryUserRepository) CreateUser(user *model.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
+	// Check if username exists
+	if _, exists := r.usersByUsername[user.Username]; exists {
+		return errors.New("username already exists")
+	}
+	
+	user.ID = r.idCounter
+	r.idCounter++
+	r.users[user.ID] = user
+	r.usersByUsername[user.Username] = user
+	return nil
+}
+
 func (r *MemoryUserRepository) AddPoints(userID uint, points int) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -189,5 +255,84 @@ func (r *MemoryUserRepository) AddPoints(userID uint, points int) error {
 		return nil
 	}
 	return errors.New("user not found")
+}
+
+func (r *MemoryUserRepository) GetStudentsByFamily(familyID uint) ([]model.User, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var students []model.User
+	for _, user := range r.users {
+		if user.FamilyID == familyID && user.Role == "student" {
+			students = append(students, *user)
+		}
+	}
+	return students, nil
+}
+
+func (r *MemoryUserRepository) GetTopStudents(limit int) ([]model.User, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
+	var students []model.User
+	for _, user := range r.users {
+		if user.Role == "student" {
+			students = append(students, *user)
+		}
+	}
+	
+	// Sort by points descending
+	for i := 0; i < len(students)-1; i++ {
+		for j := i + 1; j < len(students); j++ {
+			if students[i].Points < students[j].Points {
+				students[i], students[j] = students[j], students[i]
+			}
+		}
+	}
+	
+	if len(students) > limit {
+		students = students[:limit]
+	}
+	
+	return students, nil
+}
+
+// Memory Session Repo
+type MemorySessionRepository struct {
+	sessions map[string]*model.Session
+	mu sync.Mutex
+}
+
+func NewMemorySessionRepository() *MemorySessionRepository {
+	return &MemorySessionRepository{
+		sessions: make(map[string]*model.Session),
+	}
+}
+
+func (r *MemorySessionRepository) CreateSession(session *model.Session) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sessions[session.Token] = session
+	return nil
+}
+
+func (r *MemorySessionRepository) GetSession(token string) (*model.Session, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if s, ok := r.sessions[token]; ok {
+		// Check if expired
+		if time.Now().After(s.ExpiresAt) {
+			delete(r.sessions, token)
+			return nil, errors.New("session expired")
+		}
+		return s, nil
+	}
+	return nil, errors.New("session not found")
+}
+
+func (r *MemorySessionRepository) DeleteSession(token string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.sessions, token)
+	return nil
 }
 

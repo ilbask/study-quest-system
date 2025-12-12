@@ -15,22 +15,21 @@
             --card-bg: #fff;
         }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
         }
 
         header {
             background-color: var(--primary-color);
             color: white;
-            width: 100%;
             padding: 1rem 0;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -40,9 +39,14 @@
             width: 90%;
             max-width: 800px;
             margin: 20px auto;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
 
         .role-switcher {
@@ -69,14 +73,6 @@
             background-color: var(--primary-color);
             color: white;
             font-weight: bold;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
         }
 
         .points-display {
@@ -148,7 +144,7 @@
         .status-approved { background-color: #d4edda; color: #155724; }
         .status-todo { background-color: #e2e3e5; color: #383d41; }
 
-        .hidden { display: none; }
+        .hidden { display: none !important; }
 
         input, select {
             width: 100%;
@@ -158,6 +154,76 @@
             border-radius: 5px;
             box-sizing: border-box;
         }
+
+        /* Login/Register styles */
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-toggle {
+            text-align: center;
+            margin-top: 15px;
+            color: var(--secondary-color);
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn {
+            background: var(--danger-color);
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .ranking-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            width: 40px;
+            text-align: center;
+        }
+
+        .ranking-number.top1 { color: gold; }
+        .ranking-number.top2 { color: silver; }
+        .ranking-number.top3 { color: #CD7F32; }
+
+        .ranking-info {
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .ranking-points {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
@@ -166,10 +232,74 @@
     <h1>Study Quest 📚</h1>
 </header>
 
-<div class="container">
+<!-- Auth View (Login/Register) -->
+<div id="auth-view" class="auth-container">
+    <div class="card">
+        <h2 id="auth-title">登录</h2>
+        <div id="login-form">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="login-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="login()">登录</button>
+            <p class="form-toggle" onclick="showRegisterForm()">没有账号？点击注册</p>
+        </div>
+
+        <div id="register-form" class="hidden">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="register-username" placeholder="至少3个字符">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="register-password" placeholder="至少6个字符">
+            </div>
+            <div class="form-group">
+                <label>真实姓名</label>
+                <input type="text" id="register-realname" placeholder="请输入真实姓名">
+            </div>
+            <div class="form-group">
+                <label>角色</label>
+                <select id="register-role" onchange="toggleGradeField()">
+                    <option value="student">学生</option>
+                    <option value="parent">家长</option>
+                </select>
+            </div>
+            <div class="form-group" id="grade-field">
+                <label>年级</label>
+                <select id="register-grade">
+                    <option value="1">一年级</option>
+                    <option value="2">二年级</option>
+                    <option value="3">三年级</option>
+                    <option value="4">四年级</option>
+                    <option value="5">五年级</option>
+                    <option value="6">六年级</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="register()">注册</button>
+            <p class="form-toggle" onclick="showLoginForm()">已有账号？点击登录</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main App View -->
+<div id="app-view" class="hidden container">
+    <div class="user-info">
+        <div>
+            <strong id="user-display"></strong>
+            <span id="role-display"></span>
+        </div>
+        <button class="logout-btn" onclick="logout()">退出登录</button>
+    </div>
+
     <div class="role-switcher">
-        <button class="role-btn active" onclick="switchRole('student', event)">我是学生 👦</button>
-        <button class="role-btn" onclick="switchRole('parent', event)">我是家长 👨‍👩‍👧</button>
+        <button class="role-btn active" onclick="switchView('student', event)">学生端 👦</button>
+        <button class="role-btn" onclick="switchView('parent', event)">家长端 👨‍👩‍👧</button>
+        <button class="role-btn" onclick="switchView('ranking', event)">排行榜 🏆</button>
     </div>
 
     <!-- Student View -->
@@ -181,14 +311,12 @@
 
         <div class="card">
             <h2>今日任务 📝</h2>
-            <ul class="task-list" id="student-task-list">
-            </ul>
+            <ul class="task-list" id="student-task-list"></ul>
         </div>
 
         <div class="card">
             <h2>积分兑换 🎁</h2>
-            <ul class="task-list" id="reward-list">
-            </ul>
+            <ul class="task-list" id="reward-list"></ul>
         </div>
     </div>
 
@@ -196,8 +324,7 @@
     <div id="parent-view" class="hidden">
         <div class="card">
             <h2>待审核任务 ✅</h2>
-            <ul class="task-list" id="parent-audit-list">
-            </ul>
+            <ul class="task-list" id="parent-audit-list"></ul>
         </div>
 
         <div class="card">
@@ -206,36 +333,204 @@
             <input type="number" id="new-task-points" placeholder="积分值 (例如: 50)">
             <button class="btn btn-primary" onclick="createTask()">发布任务</button>
         </div>
+
+        <div class="card">
+            <h2>家庭成员 👨‍👩‍👧‍👦</h2>
+            <ul class="task-list" id="student-list"></ul>
+        </div>
+    </div>
+
+    <!-- Ranking View -->
+    <div id="ranking-view" class="hidden">
+        <div class="card">
+            <h2>积分排行榜 🏆</h2>
+            <div id="ranking-list"></div>
+        </div>
     </div>
 </div>
 
 <script>
     const API_BASE = '/api/v1';
-    let currentRole = 'student';
+    let currentView = 'student';
+    let authToken = localStorage.getItem('auth_token');
+    let currentUser = null;
 
-    function switchRole(role, event) {
-        currentRole = role;
+    // Initialize
+    if (authToken) {
+        validateAndLoadApp();
+    } else {
+        showAuthView();
+    }
+
+    function showAuthView() {
+        document.getElementById('auth-view').classList.remove('hidden');
+        document.getElementById('app-view').classList.add('hidden');
+    }
+
+    function showAppView() {
+        document.getElementById('auth-view').classList.add('hidden');
+        document.getElementById('app-view').classList.remove('hidden');
+    }
+
+    function showLoginForm() {
+        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('register-form').classList.add('hidden');
+        document.getElementById('auth-title').innerText = '登录';
+    }
+
+    function showRegisterForm() {
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('register-form').classList.remove('hidden');
+        document.getElementById('auth-title').innerText = '注册';
+    }
+
+    function toggleGradeField() {
+        const role = document.getElementById('register-role').value;
+        const gradeField = document.getElementById('grade-field');
+        gradeField.style.display = role === 'student' ? 'block' : 'none';
+    }
+
+    async function register() {
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+        const realName = document.getElementById('register-realname').value;
+        const role = document.getElementById('register-role').value;
+        const grade = parseInt(document.getElementById('register-grade').value);
+
+        if (!username || !password || !realName) {
+            alert('请填写完整信息');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password, role, real_name: realName, grade})
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert('注册成功！请登录');
+                showLoginForm();
+            } else {
+                alert(data.error || '注册失败');
+            }
+        } catch (e) {
+            console.error('Register failed', e);
+            alert('注册失败，请稍后重试');
+        }
+    }
+
+    async function login() {
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        if (!username || !password) {
+            alert('请输入用户名和密码');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password})
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('auth_token', authToken);
+                showAppView();
+                updateUserDisplay();
+                loadData();
+            } else {
+                alert(data.error || '登录失败');
+            }
+        } catch (e) {
+            console.error('Login failed', e);
+            alert('登录失败，请稍后重试');
+        }
+    }
+
+    async function logout() {
+        try {
+            await fetch(`${API_BASE}/auth/logout`, {
+                method: 'POST',
+                headers: {'Authorization': authToken}
+            });
+        } catch (e) {
+            console.error('Logout failed', e);
+        }
+
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem('auth_token');
+        showAuthView();
+    }
+
+    async function validateAndLoadApp() {
+        try {
+            const response = await fetch(`${API_BASE}/profile`, {
+                headers: {'Authorization': authToken}
+            });
+
+            if (response.ok) {
+                currentUser = await response.json();
+                showAppView();
+                updateUserDisplay();
+                loadData();
+            } else {
+                authToken = null;
+                localStorage.removeItem('auth_token');
+                showAuthView();
+            }
+        } catch (e) {
+            console.error('Validation failed', e);
+            showAuthView();
+        }
+    }
+
+    function updateUserDisplay() {
+        document.getElementById('user-display').innerText = currentUser.real_name || currentUser.username;
+        document.getElementById('role-display').innerText = currentUser.role === 'student' ? '(学生)' : '(家长)';
+    }
+
+    function switchView(view, event) {
+        currentView = view;
         document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
         event.target.classList.add('active');
 
-        if (role === 'student') {
-            document.getElementById('student-view').classList.remove('hidden');
-            document.getElementById('parent-view').classList.add('hidden');
+        document.getElementById('student-view').classList.toggle('hidden', view !== 'student');
+        document.getElementById('parent-view').classList.toggle('hidden', view !== 'parent');
+        document.getElementById('ranking-view').classList.toggle('hidden', view !== 'ranking');
+
+        loadData();
+    }
+
+    function loadData() {
+        if (currentView === 'student') {
             loadStudentData();
-        } else {
-            document.getElementById('student-view').classList.add('hidden');
-            document.getElementById('parent-view').classList.remove('hidden');
+        } else if (currentView === 'parent') {
             loadParentData();
+        } else if (currentView === 'ranking') {
+            loadRanking();
         }
     }
 
     async function loadStudentData() {
         try {
-            const profileRes = await fetch(`${API_BASE}/profile`);
+            const profileRes = await fetch(`${API_BASE}/profile`, {
+                headers: {'Authorization': authToken}
+            });
             const profile = await profileRes.json();
             document.getElementById('student-points').innerText = profile.points;
 
-            const tasksRes = await fetch(`${API_BASE}/tasks/today`);
+            const tasksRes = await fetch(`${API_BASE}/tasks/today`, {
+                headers: {'Authorization': authToken}
+            });
             const tasks = await tasksRes.json();
             renderStudentTasks(tasks);
 
@@ -250,18 +545,36 @@
 
     async function loadParentData() {
         try {
-            const res = await fetch(`${API_BASE}/tasks/pending`);
+            const res = await fetch(`${API_BASE}/tasks/pending`, {
+                headers: {'Authorization': authToken}
+            });
             const tasks = await res.json();
             renderParentAuditList(tasks);
+
+            const studentsRes = await fetch(`${API_BASE}/students`, {
+                headers: {'Authorization': authToken}
+            });
+            const students = await studentsRes.json();
+            renderStudentList(students);
         } catch (e) {
             console.error("Failed to load parent data", e);
+        }
+    }
+
+    async function loadRanking() {
+        try {
+            const res = await fetch(`${API_BASE}/ranking`);
+            const students = await res.json();
+            renderRanking(students);
+        } catch (e) {
+            console.error("Failed to load ranking", e);
         }
     }
 
     function renderStudentTasks(tasks) {
         const list = document.getElementById('student-task-list');
         list.innerHTML = '';
-        if (tasks.length === 0) {
+        if (!tasks || tasks.length === 0) {
             list.innerHTML = '<li class="task-item">暂无任务</li>';
             return;
         }
@@ -300,7 +613,7 @@
                     <h3>${item.title}</h3>
                     <span class="task-points" style="color:orange">-${item.cost} 积分</span>
                 </div>
-                <button class="btn btn-success" onclick="redeem(${item.id})">兑换</button>
+                <button class="btn btn-success" onclick="redeem(${item.id}, ${item.cost})">兑换</button>
             `;
             list.appendChild(li);
         });
@@ -309,7 +622,7 @@
     function renderParentAuditList(tasks) {
         const list = document.getElementById('parent-audit-list');
         list.innerHTML = '';
-        if (tasks.length === 0) {
+        if (!tasks || tasks.length === 0) {
             list.innerHTML = '<li class="task-item">暂无待审核任务</li>';
             return;
         }
@@ -330,10 +643,59 @@
         });
     }
 
+    function renderStudentList(students) {
+        const list = document.getElementById('student-list');
+        list.innerHTML = '';
+        if (!students || students.length === 0) {
+            list.innerHTML = '<li class="task-item">暂无家庭成员</li>';
+            return;
+        }
+        students.forEach(student => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            li.innerHTML = `
+                <div class="task-info">
+                    <h3>${student.real_name} (${student.username})</h3>
+                    <span>年级: ${student.grade}</span>
+                </div>
+                <div class="ranking-points">${student.points} 积分</div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderRanking(students) {
+        const container = document.getElementById('ranking-list');
+        container.innerHTML = '';
+        if (!students || students.length === 0) {
+            container.innerHTML = '<div class="task-item">暂无排名数据</div>';
+            return;
+        }
+        students.forEach((student, index) => {
+            const div = document.createElement('div');
+            div.className = 'ranking-item';
+            
+            let rankClass = '';
+            if (index === 0) rankClass = 'top1';
+            else if (index === 1) rankClass = 'top2';
+            else if (index === 2) rankClass = 'top3';
+            
+            div.innerHTML = `
+                <div class="ranking-number ${rankClass}">${index + 1}</div>
+                <div class="ranking-info">
+                    <h3>${student.real_name} (${student.username})</h3>
+                    <span>年级: ${student.grade}</span>
+                </div>
+                <div class="ranking-points">${student.points} 积分</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
     async function submitTask(taskId) {
         await fetch(`${API_BASE}/tasks/submit`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'Authorization': authToken},
             body: JSON.stringify({task_id: taskId})
         });
         loadStudentData();
@@ -342,7 +704,7 @@
     async function approveTask(logId, approved) {
         await fetch(`${API_BASE}/tasks/approve`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'Authorization': authToken},
             body: JSON.stringify({log_id: logId, action: approved ? 'approve' : 'reject'})
         });
         loadParentData();
@@ -355,7 +717,7 @@
 
         await fetch(`${API_BASE}/tasks/create`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'Authorization': authToken},
             body: JSON.stringify({title, points})
         });
         alert('发布成功');
@@ -363,24 +725,17 @@
         document.getElementById('new-task-points').value = '';
     }
 
-    async function redeem(id) {
-        const rewards = [
-            {id: 1, title: '看电视 30分钟', cost: 50},
-            {id: 2, title: '玩手机 15分钟', cost: 30}
-        ];
-        const reward = rewards.find(r => r.id === id);
-        if (!reward) return;
-
+    async function redeem(id, cost) {
         try {
             const response = await fetch(`${API_BASE}/rewards/redeem`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({reward_id: id, cost: reward.cost})
+                headers: {'Content-Type': 'application/json', 'Authorization': authToken},
+                body: JSON.stringify({reward_id: id, cost: cost})
             });
             
             if (response.ok) {
                 alert('兑换成功！请找家长领取奖励。');
-                loadStudentData(); // 刷新积分
+                loadStudentData();
             } else {
                 alert('积分不足，无法兑换！');
             }
@@ -389,11 +744,7 @@
             alert('兑换失败，请稍后重试');
         }
     }
-
-    // Init
-    loadStudentData();
 </script>
 
 </body>
 </html>
-

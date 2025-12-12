@@ -15,12 +15,14 @@ func main() {
 	// Initialize Repositories (In-Memory for demo)
 	taskRepo := repository.NewMemoryTaskRepository()
 	userRepo := repository.NewMemoryUserRepository()
+	sessionRepo := repository.NewMemorySessionRepository()
 
 	// Initialize Services
 	taskService := service.NewTaskService(taskRepo, userRepo)
+	authService := service.NewAuthService(userRepo, sessionRepo)
 	
 	// Initialize Handlers
-	h := handler.NewHandler(taskService)
+	h := handler.NewHandler(taskService, authService)
 
 	// Setup Router
 	r := gin.Default()
@@ -43,18 +45,34 @@ func main() {
 	{
 		api.GET("/config/init", h.GetAppConfig)
 		
+		// Auth (public)
+		api.POST("/auth/register", h.Register)
+		api.POST("/auth/login", h.Login)
+		api.POST("/auth/logout", h.Logout)
+		
+		// Ranking (public)
+		api.GET("/ranking", h.GetRanking)
+	}
+	
+	// Protected routes (require authentication)
+	protected := r.Group("/api/v1")
+	protected.Use(authMiddleware(authService))
+	{
 		// Tasks
-		api.GET("/tasks/today", h.GetTodayTasks)
-		api.GET("/tasks/pending", h.GetPendingTasks)
-		api.POST("/tasks/create", h.CreateTask)
-		api.POST("/tasks/submit", h.SubmitTask)
-		api.POST("/tasks/approve", h.ApproveTask)
+		protected.GET("/tasks/today", h.GetTodayTasks)
+		protected.GET("/tasks/pending", h.GetPendingTasks)
+		protected.POST("/tasks/create", h.CreateTask)
+		protected.POST("/tasks/submit", h.SubmitTask)
+		protected.POST("/tasks/approve", h.ApproveTask)
 
 		// Profile
-		api.GET("/profile", h.GetProfile)
+		protected.GET("/profile", h.GetProfile)
 		
 		// Rewards
-		api.POST("/rewards/redeem", h.RedeemReward)
+		protected.POST("/rewards/redeem", h.RedeemReward)
+		
+		// Students
+		protected.GET("/students", h.GetStudentList)
 	}
 
 	// Start Server
@@ -74,6 +92,29 @@ func corsMiddleware() gin.HandlerFunc {
 			c.AbortWithStatus(204)
 			return
 		}
+		c.Next()
+	}
+}
+
+func authMiddleware(authService *service.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+			c.Abort()
+			return
+		}
+		
+		user, err := authService.ValidateSession(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+		
+		// Set user info in context
+		c.Set("user_id", user.ID)
+		c.Set("user_role", user.Role)
 		c.Next()
 	}
 }

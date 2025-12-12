@@ -9,11 +9,13 @@ import (
 
 type Handler struct {
 	taskService *service.TaskService
+	authService *service.AuthService
 }
 
-func NewHandler(ts *service.TaskService) *Handler {
+func NewHandler(ts *service.TaskService, as *service.AuthService) *Handler {
 	return &Handler{
 		taskService: ts,
+		authService: as,
 	}
 }
 
@@ -25,7 +27,14 @@ func (h *Handler) GetAppConfig(c *gin.Context) {
 }
 
 func (h *Handler) GetTodayTasks(c *gin.Context) {
-	tasks, _ := h.taskService.GetTodayTasks(1)
+	// Get user from context (set by auth middleware)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	
+	tasks, _ := h.taskService.GetTodayTasks(userID.(uint))
 	c.JSON(http.StatusOK, tasks)
 }
 
@@ -78,7 +87,13 @@ func (h *Handler) ApproveTask(c *gin.Context) {
 }
 
 func (h *Handler) GetProfile(c *gin.Context) {
-	user, _ := h.taskService.GetUserProfile(1)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	
+	user, _ := h.taskService.GetUserProfile(userID.(uint))
 	c.JSON(http.StatusOK, user)
 }
 
@@ -92,12 +107,105 @@ func (h *Handler) RedeemReward(c *gin.Context) {
 		return
 	}
 
-	// Assume student ID is 1
-	err := h.taskService.RedeemReward(1, req.Cost)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err := h.taskService.RedeemReward(userID.(uint), req.Cost)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient points or error occurred"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "redeemed"})
+}
+
+// Auth Handlers
+func (h *Handler) Register(c *gin.Context) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Role     string `json:"role"`
+		RealName string `json:"real_name"`
+		Grade    int    `json:"grade"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	user, err := h.authService.Register(req.Username, req.Password, req.Role, req.RealName, req.Grade)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user, "message": "Registration successful"})
+}
+
+func (h *Handler) Login(c *gin.Context) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	user, token, err := h.authService.Login(req.Username, req.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user, "token": token})
+}
+
+func (h *Handler) Logout(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No token provided"})
+		return
+	}
+
+	h.authService.Logout(token)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+// Student List and Ranking
+func (h *Handler) GetStudentList(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Get user to find family ID
+	user, err := h.taskService.GetUserProfile(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+		return
+	}
+
+	students, err := h.taskService.GetStudentsByFamily(user.FamilyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get students"})
+		return
+	}
+
+	c.JSON(http.StatusOK, students)
+}
+
+func (h *Handler) GetRanking(c *gin.Context) {
+	limit := 10 // Top 10 by default
+	students, err := h.taskService.GetTopStudents(limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ranking"})
+		return
+	}
+
+	c.JSON(http.StatusOK, students)
 }
 

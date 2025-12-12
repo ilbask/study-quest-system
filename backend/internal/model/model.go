@@ -8,9 +8,13 @@ import (
 type User struct {
 	gorm.Model
 	Username string `json:"username"`
+	Password string `json:"-"` // 不在 JSON 中返回
 	Role     string `json:"role"` // 'parent', 'student'
 	Points   int    `json:"points"`
 	Avatar   string `json:"avatar"`
+	FamilyID uint   `json:"family_id"` // 家庭组ID
+	Grade    int    `json:"grade"` // 年级（学生）
+	RealName string `json:"real_name"` // 真实姓名
 }
 
 type Task struct {
@@ -51,5 +55,12 @@ type AppConfig struct {
 	Value      string `json:"value"`
 	Platform   string `json:"platform"`
 	MinVersion string `json:"min_version"`
+}
+
+type Session struct {
+	Token     string `gorm:"primaryKey" json:"token"`
+	UserID    uint   `json:"user_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
