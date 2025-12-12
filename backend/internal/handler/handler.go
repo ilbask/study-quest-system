@@ -52,7 +52,28 @@ func (h *Handler) CreateTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-	h.taskService.CreateTask(req.Title, req.Points)
+	
+	// Get current user (parent)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	
+	// Get user info to find family ID
+	user, err := h.taskService.GetUserProfile(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+		return
+	}
+	
+	// Create task and assign to family students
+	err = h.taskService.CreateTask(req.Title, req.Points, user.FamilyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
+		return
+	}
+	
 	c.JSON(http.StatusOK, gin.H{"status": "created"})
 }
 

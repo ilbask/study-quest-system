@@ -15,6 +15,7 @@ type ITaskRepository interface {
 	GetPendingTasks() ([]model.TaskLog, error)
 	GetTaskLog(logID uint) (*model.TaskLog, error)
 	CreateTask(task *model.Task) error
+	AssignTaskToStudent(studentID uint, taskID uint) error
 	SubmitTask(studentID uint, taskID uint) error
 	ApproveTask(logID uint) error
 	RejectTask(logID uint) error
@@ -120,17 +121,6 @@ func (r *MemoryTaskRepository) CreateTask(task *model.Task) error {
 	task.ID = r.idCounter
 	r.idCounter++
 	r.tasks[task.ID] = task
-	
-	// Auto assign to student 1 for demo
-	log := &model.TaskLog{
-		Model: gorm.Model{ID: r.logCounter},
-		StudentID: 1,
-		TaskID: task.ID,
-		Status: 0,
-		Task: *task,
-	}
-	r.taskLogs[r.logCounter] = log
-	r.logCounter++
 	return nil
 }
 
@@ -166,6 +156,27 @@ func (r *MemoryTaskRepository) RejectTask(logID uint) error {
 		return nil
 	}
 	return errors.New("log not found")
+}
+
+func (r *MemoryTaskRepository) AssignTaskToStudent(studentID uint, taskID uint) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
+	task, ok := r.tasks[taskID]
+	if !ok {
+		return errors.New("task not found")
+	}
+	
+	log := &model.TaskLog{
+		Model:     gorm.Model{ID: r.logCounter},
+		StudentID: studentID,
+		TaskID:    taskID,
+		Status:    0, // Todo
+		Task:      *task,
+	}
+	r.taskLogs[r.logCounter] = log
+	r.logCounter++
+	return nil
 }
 
 // Memory User Repo

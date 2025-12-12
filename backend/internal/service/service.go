@@ -29,13 +29,33 @@ func (s *TaskService) GetPendingTasks() ([]model.TaskLog, error) {
 	return s.taskRepo.GetPendingTasks()
 }
 
-func (s *TaskService) CreateTask(title string, points int) error {
+func (s *TaskService) CreateTask(title string, points int, familyID uint) error {
 	task := &model.Task{
 		Title:  title,
 		Points: points,
 		Type:   1,
 	}
-	return s.taskRepo.CreateTask(task)
+	
+	// Create task
+	err := s.taskRepo.CreateTask(task)
+	if err != nil {
+		return err
+	}
+	
+	// Assign to all students in the family
+	students, err := s.userRepo.GetStudentsByFamily(familyID)
+	if err != nil {
+		return err
+	}
+	
+	for _, student := range students {
+		err := s.taskRepo.AssignTaskToStudent(student.ID, task.ID)
+		if err != nil {
+			return err
+		}
+	}
+	
+	return nil
 }
 
 func (s *TaskService) SubmitTask(studentID uint, taskID uint) error {
