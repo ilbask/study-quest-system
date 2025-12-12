@@ -67,6 +67,20 @@ func SeedData(db *gorm.DB) error {
 		}
 	}
 
+	// Create demo rewards
+	rewards := []model.Reward{
+		{Title: "看电视 30分钟", Cost: 50, Category: 1, Stock: 999},
+		{Title: "玩手机 15分钟", Cost: 30, Category: 1, Stock: 999},
+		{Title: "吃冰淇淋", Cost: 40, Category: 2, Stock: 10},
+		{Title: "去游乐园", Cost: 200, Category: 2, Stock: 5},
+	}
+
+	for _, reward := range rewards {
+		if err := db.Create(&reward).Error; err != nil {
+			return fmt.Errorf("failed to create reward: %w", err)
+		}
+	}
+
 	// Create demo tasks
 	tasks := []model.Task{
 		{Title: "完成数学作业", Points: 30, Type: 1},

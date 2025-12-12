@@ -542,10 +542,11 @@
             const tasks = await tasksRes.json();
             renderStudentTasks(tasks);
 
-            renderRewards([
-                {id: 1, title: '看电视 30分钟', cost: 50},
-                {id: 2, title: '玩手机 15分钟', cost: 30}
-            ]);
+            const rewardsRes = await fetch(`${API_BASE}/rewards`, {
+                headers: {'Authorization': authToken}
+            });
+            const rewardsData = await rewardsRes.json();
+            renderRewards(rewardsData.rewards || []);
         } catch (e) {
             console.error("Failed to load data", e);
         }

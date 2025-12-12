@@ -14,13 +14,15 @@ type TaskService struct {
 	taskRepo       repository.ITaskRepository
 	userRepo       repository.IUserRepository
 	redemptionRepo repository.IRedemptionRepository
+	rewardRepo     repository.IRewardRepository
 }
 
-func NewTaskService(taskRepo repository.ITaskRepository, userRepo repository.IUserRepository, redemptionRepo repository.IRedemptionRepository) *TaskService {
+func NewTaskService(taskRepo repository.ITaskRepository, userRepo repository.IUserRepository, redemptionRepo repository.IRedemptionRepository, rewardRepo repository.IRewardRepository) *TaskService {
 	return &TaskService{
 		taskRepo:       taskRepo,
 		userRepo:       userRepo,
 		redemptionRepo: redemptionRepo,
+		rewardRepo:     rewardRepo,
 	}
 }
 
@@ -151,6 +153,10 @@ func (s *TaskService) GetRedemptionsByFamily(familyID uint) ([]model.Redemption,
 
 func (s *TaskService) GetRedemptionsByStudent(studentID uint) ([]model.Redemption, error) {
 	return s.redemptionRepo.GetRedemptionsByStudent(studentID)
+}
+
+func (s *TaskService) GetAllRewards() ([]model.Reward, error) {
+	return s.rewardRepo.GetAllRewards()
 }
 
 func (s *TaskService) GetStudentsByFamily(familyID uint) ([]model.User, error) {

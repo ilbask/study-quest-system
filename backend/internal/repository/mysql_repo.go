@@ -175,3 +175,24 @@ func (r *MySQLRedemptionRepository) GetRedemptionsByStudent(studentID uint) ([]m
 	return redemptions, err
 }
 
+// MySQLRewardRepository
+type MySQLRewardRepository struct {
+	db *gorm.DB
+}
+
+func NewMySQLRewardRepository(db *gorm.DB) *MySQLRewardRepository {
+	return &MySQLRewardRepository{db: db}
+}
+
+func (r *MySQLRewardRepository) GetAllRewards() ([]model.Reward, error) {
+	var rewards []model.Reward
+	err := r.db.Find(&rewards).Error
+	return rewards, err
+}
+
+func (r *MySQLRewardRepository) GetReward(id uint) (*model.Reward, error) {
+	var reward model.Reward
+	err := r.db.First(&reward, id).Error
+	return &reward, err
+}
+

@@ -30,8 +30,9 @@ func main() {
 	userRepo := repository.NewMemoryUserRepository()
 	sessionRepo := repository.NewMemorySessionRepository()
 	redemptionRepo := repository.NewMemoryRedemptionRepository()
+	rewardRepo := repository.NewMemoryRewardRepository()
 	
-	taskService := service.NewTaskService(taskRepo, userRepo, redemptionRepo)
+	taskService := service.NewTaskService(taskRepo, userRepo, redemptionRepo, rewardRepo)
 	authService := service.NewAuthService(userRepo, sessionRepo)
 	h := handler.NewHandler(taskService, authService)
 	
@@ -57,9 +58,10 @@ func main() {
 	userRepo := repository.NewMySQLUserRepository(db)
 	sessionRepo := repository.NewMySQLSessionRepository(db)
 	redemptionRepo := repository.NewMySQLRedemptionRepository(db)
+	rewardRepo := repository.NewMySQLRewardRepository(db)
 
 	// 6. Initialize Services
-	taskService := service.NewTaskService(taskRepo, userRepo, redemptionRepo)
+	taskService := service.NewTaskService(taskRepo, userRepo, redemptionRepo, rewardRepo)
 	authService := service.NewAuthService(userRepo, sessionRepo)
 	
 	// 7. Initialize Handlers
@@ -115,6 +117,7 @@ func startServer(h *handler.Handler, port string) {
 		protected.GET("/profile", h.GetProfile)
 		
 	// Rewards
+	protected.GET("/rewards", h.GetRewards)
 	protected.POST("/rewards/redeem", h.RedeemReward)
 	protected.GET("/redemptions", h.GetRedemptions)
 	

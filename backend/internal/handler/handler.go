@@ -200,6 +200,17 @@ func (h *Handler) GetRedemptions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"redemptions": redemptions})
 }
 
+func (h *Handler) GetRewards(c *gin.Context) {
+	rewards, err := h.taskService.GetAllRewards()
+	if err != nil {
+		log.Printf("Error getting rewards: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get rewards"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"rewards": rewards})
+}
+
 // Auth Handlers
 func (h *Handler) Register(c *gin.Context) {
 	var req struct {

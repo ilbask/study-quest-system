@@ -43,6 +43,11 @@ type IRedemptionRepository interface {
 	GetRedemptionsByStudent(studentID uint) ([]model.Redemption, error)
 }
 
+type IRewardRepository interface {
+	GetAllRewards() ([]model.Reward, error)
+	GetReward(id uint) (*model.Reward, error)
+}
+
 // Memory Implementation
 type MemoryTaskRepository struct {
 	tasks    map[uint]*model.Task
@@ -417,5 +422,55 @@ func (r *MemoryRedemptionRepository) GetRedemptionsByStudent(studentID uint) ([]
 		}
 	}
 	return result, nil
+}
+
+// MemoryRewardRepository
+type MemoryRewardRepository struct {
+	rewards   map[uint]*model.Reward
+	idCounter uint
+	mu        sync.Mutex
+}
+
+func NewMemoryRewardRepository() *MemoryRewardRepository {
+	repo := &MemoryRewardRepository{
+		rewards:   make(map[uint]*model.Reward),
+		idCounter: 1,
+	}
+	
+	// Initialize with default rewards
+	defaultRewards := []model.Reward{
+		{Title: "看电视 30分钟", Cost: 50, Category: 1, Stock: 999},
+		{Title: "玩手机 15分钟", Cost: 30, Category: 1, Stock: 999},
+		{Title: "吃冰淇淋", Cost: 40, Category: 2, Stock: 10},
+		{Title: "去游乐园", Cost: 200, Category: 2, Stock: 5},
+	}
+	
+	for _, reward := range defaultRewards {
+		reward.ID = repo.idCounter
+		repo.idCounter++
+		reward.CreatedAt = time.Now()
+		repo.rewards[reward.ID] = &reward
+	}
+	
+	return repo
+}
+
+func (r *MemoryRewardRepository) GetAllRewards() ([]model.Reward, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var result []model.Reward
+	for _, reward := range r.rewards {
+		result = append(result, *reward)
+	}
+	return result, nil
+}
+
+func (r *MemoryRewardRepository) GetReward(id uint) (*model.Reward, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if reward, ok := r.rewards[id]; ok {
+		return reward, nil
+	}
+	return nil, errors.New("reward not found")
 }
 
