@@ -27,12 +27,12 @@ type Task struct {
 
 type TaskLog struct {
 	gorm.Model
-	StudentID   uint      `json:"student_id"`
-	TaskID      uint      `json:"task_id"`
-	Status      int       `json:"status"` // 0:InProgress, 1:Pending, 2:Done, 3:Rejected
-	SubmittedAt time.Time `json:"submitted_at"`
-	ApprovedAt  time.Time `json:"approved_at"`
-	Task        Task      `json:"task"` // Preload
+	StudentID   uint       `json:"student_id"`
+	TaskID      uint       `json:"task_id"`
+	Status      int        `json:"status"` // 0:InProgress, 1:Pending, 2:Done, 3:Rejected
+	SubmittedAt *time.Time `json:"submitted_at"`
+	ApprovedAt  *time.Time `json:"approved_at"`
+	Task        Task       `json:"task" gorm:"foreignKey:TaskID"` // Preload
 }
 
 type Reward struct {

@@ -131,7 +131,8 @@ func (r *MemoryTaskRepository) SubmitTask(studentID uint, taskID uint) error {
 	for _, log := range r.taskLogs {
 		if log.StudentID == studentID && log.Model.ID == taskID && log.Status == 0 {
 			log.Status = 1 // Pending
-			log.SubmittedAt = time.Now()
+			now := time.Now()
+			log.SubmittedAt = &now
 			return nil
 		}
 	}
@@ -146,7 +147,8 @@ func (r *MemoryTaskRepository) SubmitTaskByLogID(logID uint) error {
 			return errors.New("task already submitted or completed")
 		}
 		log.Status = 1 // Pending
-		log.SubmittedAt = time.Now()
+		now := time.Now()
+		log.SubmittedAt = &now
 		return nil
 	}
 	return errors.New("task log not found")
@@ -157,7 +159,8 @@ func (r *MemoryTaskRepository) ApproveTask(logID uint) error {
 	defer r.mu.Unlock()
 	if log, ok := r.taskLogs[logID]; ok {
 		log.Status = 2
-		log.ApprovedAt = time.Now()
+		now := time.Now()
+		log.ApprovedAt = &now
 		return nil
 	}
 	return errors.New("log not found")
