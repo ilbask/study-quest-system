@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"study-quest-backend/internal/config"
 	"study-quest-backend/internal/handler"
 	"study-quest-backend/internal/repository"
 	"study-quest-backend/internal/service"
@@ -12,17 +13,60 @@ import (
 )
 
 func main() {
-	// Initialize Repositories (In-Memory for demo)
-	taskRepo := repository.NewMemoryTaskRepository()
-	userRepo := repository.NewMemoryUserRepository()
-	sessionRepo := repository.NewMemorySessionRepository()
+	// 1. Load Configuration
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
 
-	// Initialize Services
+	// 2. Initialize Database
+	db, err := repository.InitDB(cfg.Database)
+	if err != nil {
+		log.Printf("Failed to connect to MySQL: %v", err)
+		log.Println("Falling back to In-Memory mode...")
+		
+		// Fallback to memory repositories
+		taskRepo := repository.NewMemoryTaskRepository()
+		userRepo := repository.NewMemoryUserRepository()
+		sessionRepo := repository.NewMemorySessionRepository()
+		
+		taskService := service.NewTaskService(taskRepo, userRepo)
+		authService := service.NewAuthService(userRepo, sessionRepo)
+		h := handler.NewHandler(taskService, authService)
+		
+		startServer(h, cfg.Server.Port)
+		return
+	}
+
+	log.Println("Connected to MySQL successfully!")
+
+	// 3. Auto Migrate Database Schemas
+	if err := repository.AutoMigrate(db); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+	log.Println("Database migrated successfully")
+
+	// 4. Seed Initial Data
+	if err := repository.SeedData(db); err != nil {
+		log.Printf("Warning: Failed to seed data: %v", err)
+	}
+
+	// 5. Initialize Repositories (MySQL)
+	taskRepo := repository.NewMySQLTaskRepository(db)
+	userRepo := repository.NewMySQLUserRepository(db)
+	sessionRepo := repository.NewMySQLSessionRepository(db)
+
+	// 6. Initialize Services
 	taskService := service.NewTaskService(taskRepo, userRepo)
 	authService := service.NewAuthService(userRepo, sessionRepo)
 	
-	// Initialize Handlers
+	// 7. Initialize Handlers
 	h := handler.NewHandler(taskService, authService)
+	
+	startServer(h, cfg.Server.Port)
+}
+
+func startServer(h *handler.Handler, port string) {
 
 	// Setup Router
 	r := gin.Default()
@@ -56,7 +100,7 @@ func main() {
 	
 	// Protected routes (require authentication)
 	protected := r.Group("/api/v1")
-	protected.Use(authMiddleware(authService))
+	protected.Use(h.AuthMiddleware())
 	{
 		// Tasks
 		protected.GET("/tasks/today", h.GetTodayTasks)
@@ -76,8 +120,9 @@ func main() {
 	}
 
 	// Start Server
-	port := "8080"
-	log.Printf("Running in DEMO MODE (In-Memory)")
+	if port == "" {
+		port = "8080"
+	}
 	log.Printf("Server starting on port %s...", port)
 	log.Printf("Open http://localhost:%s/web to view the demo", port)
 	r.Run(":" + port)
@@ -96,26 +141,4 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
-func authMiddleware(authService *service.AuthService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
-		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
-			c.Abort()
-			return
-		}
-		
-		user, err := authService.ValidateSession(token)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
-			return
-		}
-		
-		// Set user info in context
-		c.Set("user_id", user.ID)
-		c.Set("user_role", user.Role)
-		c.Next()
-	}
-}
 

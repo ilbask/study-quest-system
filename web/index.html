@@ -377,18 +377,21 @@
         document.getElementById('register-form').classList.add('hidden');
         document.getElementById('auth-title').innerText = '登录';
     }
+    window.showLoginForm = showLoginForm;
 
     function showRegisterForm() {
         document.getElementById('login-form').classList.add('hidden');
         document.getElementById('register-form').classList.remove('hidden');
         document.getElementById('auth-title').innerText = '注册';
     }
+    window.showRegisterForm = showRegisterForm;
 
     function toggleGradeField() {
         const role = document.getElementById('register-role').value;
         const gradeField = document.getElementById('grade-field');
         gradeField.style.display = role === 'student' ? 'block' : 'none';
     }
+    window.toggleGradeField = toggleGradeField;
 
     async function register() {
         const username = document.getElementById('register-username').value;
@@ -578,13 +581,21 @@
             list.innerHTML = '<li class="task-item">暂无任务</li>';
             return;
         }
+        
         tasks.forEach(task => {
+            console.log('Rendering task:', task); // Debug
+            
             const li = document.createElement('li');
             li.className = 'task-item';
             
+            // 安全获取任务信息
+            const taskTitle = task.task?.title || task.Task?.title || '未知任务';
+            const taskPoints = task.task?.points || task.Task?.points || 0;
+            const taskId = task.ID || task.id;
+            
             let actionBtn = '';
             if (task.status === 0) {
-                actionBtn = `<button class="btn btn-primary" onclick="submitTask(${task.ID})">提交完成</button>`;
+                actionBtn = `<button class="btn btn-primary" onclick="window.submitTask(${taskId})">提交完成</button>`;
             } else if (task.status === 1) {
                 actionBtn = `<span class="status-badge status-pending">审核中...</span>`;
             } else if (task.status === 2) {
@@ -593,8 +604,8 @@
 
             li.innerHTML = `
                 <div class="task-info">
-                    <h3>${task.task.title}</h3>
-                    <span class="task-points">+${task.task.points} 积分</span>
+                    <h3>${taskTitle}</h3>
+                    <span class="task-points">+${taskPoints} 积分</span>
                 </div>
                 <div>${actionBtn}</div>
             `;
@@ -693,13 +704,28 @@
     }
 
     async function submitTask(taskId) {
-        await fetch(`${API_BASE}/tasks/submit`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'Authorization': authToken},
-            body: JSON.stringify({task_id: taskId})
-        });
-        loadStudentData();
+        console.log('Submitting task:', taskId);
+        try {
+            const response = await fetch(`${API_BASE}/tasks/submit`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Authorization': authToken},
+                body: JSON.stringify({task_id: taskId})
+            });
+            
+            if (response.ok) {
+                alert('任务已提交，等待家长审核');
+                loadStudentData();
+            } else {
+                alert('提交失败，请重试');
+            }
+        } catch (e) {
+            console.error('Submit failed', e);
+            alert('提交失败，请检查网络连接');
+        }
     }
+    
+    // 将函数挂载到 window 对象，以便 onclick 可以访问
+    window.submitTask = submitTask;
 
     async function approveTask(logId, approved) {
         await fetch(`${API_BASE}/tasks/approve`, {
@@ -709,6 +735,7 @@
         });
         loadParentData();
     }
+    window.approveTask = approveTask;
 
     async function createTask() {
         const title = document.getElementById('new-task-title').value;
@@ -724,6 +751,7 @@
         document.getElementById('new-task-title').value = '';
         document.getElementById('new-task-points').value = '';
     }
+    window.createTask = createTask;
 
     async function redeem(id, cost) {
         try {
@@ -744,6 +772,7 @@
             alert('兑换失败，请稍后重试');
         }
     }
+    window.redeem = redeem;
 </script>
 
 </body>

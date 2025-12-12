@@ -19,6 +19,30 @@ func NewHandler(ts *service.TaskService, as *service.AuthService) *Handler {
 	}
 }
 
+// Middleware
+func (h *Handler) AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+			c.Abort()
+			return
+		}
+		
+		user, err := h.authService.ValidateSession(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+		
+		// Set user info in context
+		c.Set("user_id", user.ID)
+		c.Set("user_role", user.Role)
+		c.Next()
+	}
+}
+
 func (h *Handler) GetAppConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"review_mode": false,
@@ -85,7 +109,14 @@ func (h *Handler) SubmitTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-	h.taskService.SubmitTask(1, req.TaskID)
+	
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	
+	h.taskService.SubmitTask(userID.(uint), req.TaskID)
 	c.JSON(http.StatusOK, gin.H{"status": "submitted"})
 }
 
@@ -229,4 +260,3 @@ func (h *Handler) GetRanking(c *gin.Context) {
 
 	c.JSON(http.StatusOK, students)
 }
-
