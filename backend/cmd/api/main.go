@@ -52,6 +52,9 @@ func main() {
 
 		// Profile
 		api.GET("/profile", h.GetProfile)
+		
+		// Rewards
+		api.POST("/rewards/redeem", h.RedeemReward)
 	}
 
 	// Start Server

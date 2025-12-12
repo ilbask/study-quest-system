@@ -13,6 +13,7 @@ import (
 type ITaskRepository interface {
 	GetTodayTasks(studentID uint) ([]model.TaskLog, error)
 	GetPendingTasks() ([]model.TaskLog, error)
+	GetTaskLog(logID uint) (*model.TaskLog, error)
 	CreateTask(task *model.Task) error
 	SubmitTask(studentID uint, taskID uint) error
 	ApproveTask(logID uint) error
@@ -88,6 +89,19 @@ func (r *MemoryTaskRepository) GetPendingTasks() ([]model.TaskLog, error) {
 		}
 	}
 	return logs, nil
+}
+
+func (r *MemoryTaskRepository) GetTaskLog(logID uint) (*model.TaskLog, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if log, ok := r.taskLogs[logID]; ok {
+		// Reload task info
+		if t, ok := r.tasks[log.TaskID]; ok {
+			log.Task = *t
+		}
+		return log, nil
+	}
+	return nil, errors.New("task log not found")
 }
 
 func (r *MemoryTaskRepository) CreateTask(task *model.Task) error {

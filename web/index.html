@@ -364,7 +364,30 @@
     }
 
     async function redeem(id) {
-        alert('兑换成功！请找家长领取奖励。');
+        const rewards = [
+            {id: 1, title: '看电视 30分钟', cost: 50},
+            {id: 2, title: '玩手机 15分钟', cost: 30}
+        ];
+        const reward = rewards.find(r => r.id === id);
+        if (!reward) return;
+
+        try {
+            const response = await fetch(`${API_BASE}/rewards/redeem`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({reward_id: id, cost: reward.cost})
+            });
+            
+            if (response.ok) {
+                alert('兑换成功！请找家长领取奖励。');
+                loadStudentData(); // 刷新积分
+            } else {
+                alert('积分不足，无法兑换！');
+            }
+        } catch (e) {
+            console.error('Redeem failed', e);
+            alert('兑换失败，请稍后重试');
+        }
     }
 
     // Init

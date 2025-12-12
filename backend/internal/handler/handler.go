@@ -82,3 +82,22 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+func (h *Handler) RedeemReward(c *gin.Context) {
+	var req struct {
+		RewardID uint `json:"reward_id"`
+		Cost     int  `json:"cost"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Assume student ID is 1
+	err := h.taskService.RedeemReward(1, req.Cost)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient points or error occurred"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "redeemed"})
+}
+
