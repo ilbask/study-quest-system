@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Quest - 小学生作业积分系统</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #FFC107;
+            --danger-color: #f44336;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+            --card-bg: #fff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .role-switcher {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .role-btn {
+            padding: 10px 30px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .role-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .points-display {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin: 10px 0;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1rem;
+        }
+
+        .task-points {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-approved { background-color: #d4edda; color: #155724; }
+        .status-todo { background-color: #e2e3e5; color: #383d41; }
+
+        .hidden { display: none; }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Study Quest 📚</h1>
+</header>
+
+<div class="container">
+    <div class="role-switcher">
+        <button class="role-btn active" onclick="switchRole('student', event)">我是学生 👦</button>
+        <button class="role-btn" onclick="switchRole('parent', event)">我是家长 👨‍👩‍👧</button>
+    </div>
+
+    <!-- Student View -->
+    <div id="student-view">
+        <div class="card">
+            <h2>我的积分 🌟</h2>
+            <div class="points-display" id="student-points">0</div>
+        </div>
+
+        <div class="card">
+            <h2>今日任务 📝</h2>
+            <ul class="task-list" id="student-task-list">
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>积分兑换 🎁</h2>
+            <ul class="task-list" id="reward-list">
+            </ul>
+        </div>
+    </div>
+
+    <!-- Parent View -->
+    <div id="parent-view" class="hidden">
+        <div class="card">
+            <h2>待审核任务 ✅</h2>
+            <ul class="task-list" id="parent-audit-list">
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>发布新任务 ➕</h2>
+            <input type="text" id="new-task-title" placeholder="任务名称 (例如: 完成数学卷子)">
+            <input type="number" id="new-task-points" placeholder="积分值 (例如: 50)">
+            <button class="btn btn-primary" onclick="createTask()">发布任务</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/api/v1';
+    let currentRole = 'student';
+
+    function switchRole(role, event) {
+        currentRole = role;
+        document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        if (role === 'student') {
+            document.getElementById('student-view').classList.remove('hidden');
+            document.getElementById('parent-view').classList.add('hidden');
+            loadStudentData();
+        } else {
+            document.getElementById('student-view').classList.add('hidden');
+            document.getElementById('parent-view').classList.remove('hidden');
+            loadParentData();
+        }
+    }
+
+    async function loadStudentData() {
+        try {
+            const profileRes = await fetch(`${API_BASE}/profile`);
+            const profile = await profileRes.json();
+            document.getElementById('student-points').innerText = profile.points;
+
+            const tasksRes = await fetch(`${API_BASE}/tasks/today`);
+            const tasks = await tasksRes.json();
+            renderStudentTasks(tasks);
+
+            renderRewards([
+                {id: 1, title: '看电视 30分钟', cost: 50},
+                {id: 2, title: '玩手机 15分钟', cost: 30}
+            ]);
+        } catch (e) {
+            console.error("Failed to load data", e);
+        }
+    }
+
+    async function loadParentData() {
+        try {
+            const res = await fetch(`${API_BASE}/tasks/pending`);
+            const tasks = await res.json();
+            renderParentAuditList(tasks);
+        } catch (e) {
+            console.error("Failed to load parent data", e);
+        }
+    }
+
+    function renderStudentTasks(tasks) {
+        const list = document.getElementById('student-task-list');
+        list.innerHTML = '';
+        if (tasks.length === 0) {
+            list.innerHTML = '<li class="task-item">暂无任务</li>';
+            return;
+        }
+        tasks.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            
+            let actionBtn = '';
+            if (task.status === 0) {
+                actionBtn = `<button class="btn btn-primary" onclick="submitTask(${task.ID})">提交完成</button>`;
+            } else if (task.status === 1) {
+                actionBtn = `<span class="status-badge status-pending">审核中...</span>`;
+            } else if (task.status === 2) {
+                actionBtn = `<span class="status-badge status-approved">已完成</span>`;
+            }
+
+            li.innerHTML = `
+                <div class="task-info">
+                    <h3>${task.task.title}</h3>
+                    <span class="task-points">+${task.task.points} 积分</span>
+                </div>
+                <div>${actionBtn}</div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderRewards(rewards) {
+        const list = document.getElementById('reward-list');
+        list.innerHTML = '';
+        rewards.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            li.innerHTML = `
+                <div class="task-info">
+                    <h3>${item.title}</h3>
+                    <span class="task-points" style="color:orange">-${item.cost} 积分</span>
+                </div>
+                <button class="btn btn-success" onclick="redeem(${item.id})">兑换</button>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderParentAuditList(tasks) {
+        const list = document.getElementById('parent-audit-list');
+        list.innerHTML = '';
+        if (tasks.length === 0) {
+            list.innerHTML = '<li class="task-item">暂无待审核任务</li>';
+            return;
+        }
+        tasks.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            li.innerHTML = `
+                <div class="task-info">
+                    <h3>${task.task.title}</h3>
+                    <span class="task-points">待发: ${task.task.points} 积分</span>
+                </div>
+                <div>
+                    <button class="btn btn-success" onclick="approveTask(${task.ID}, true)">通过</button>
+                    <button class="btn btn-danger" onclick="approveTask(${task.ID}, false)">驳回</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    async function submitTask(taskId) {
+        await fetch(`${API_BASE}/tasks/submit`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({task_id: taskId})
+        });
+        loadStudentData();
+    }
+
+    async function approveTask(logId, approved) {
+        await fetch(`${API_BASE}/tasks/approve`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({log_id: logId, action: approved ? 'approve' : 'reject'})
+        });
+        loadParentData();
+    }
+
+    async function createTask() {
+        const title = document.getElementById('new-task-title').value;
+        const points = parseInt(document.getElementById('new-task-points').value);
+        if (!title || !points) return alert('请填写完整');
+
+        await fetch(`${API_BASE}/tasks/create`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, points})
+        });
+        alert('发布成功');
+        document.getElementById('new-task-title').value = '';
+        document.getElementById('new-task-points').value = '';
+    }
+
+    async function redeem(id) {
+        alert('兑换成功！请找家长领取奖励。');
+    }
+
+    // Init
+    loadStudentData();
+</script>
+
+</body>
+</html>
+
