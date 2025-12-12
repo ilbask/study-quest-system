@@ -79,12 +79,12 @@ func SeedData(db *gorm.DB) error {
 		}
 
 		// Assign to student1
-		log := model.TaskLog{
-			StudentID: 1,
-			TaskID:    task.ID,
-			Status:    0,
-		}
-		if err := db.Create(&log).Error; err != nil {
+		// Use map to avoid zero-value datetime issues
+		if err := db.Model(&model.TaskLog{}).Create(map[string]interface{}{
+			"student_id": 1,
+			"task_id":    task.ID,
+			"status":     0,
+		}).Error; err != nil {
 			return fmt.Errorf("failed to create task log: %w", err)
 		}
 	}

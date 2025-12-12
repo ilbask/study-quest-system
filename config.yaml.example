@@ -1,0 +1,10 @@
+# Study Quest 配置文件示例
+# 复制此文件为 config.yaml 并修改为您的实际配置
+
+server:
+  port: "8080"
+
+database:
+  # MySQL 连接字符串格式: 用户名:密码@tcp(主机:端口)/数据库名?参数
+  dsn: "root:your_password@tcp(127.0.0.1:3306)/study_quest?charset=utf8mb4&parseTime=True&loc=Local"
+

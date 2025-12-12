@@ -59,6 +59,8 @@ android/.gradle/
 # Environment
 .env
 .env.local
+config.yaml
+config.yml
 
 # Database
 *.db
