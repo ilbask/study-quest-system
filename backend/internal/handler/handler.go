@@ -159,8 +159,9 @@ func (h *Handler) GetProfile(c *gin.Context) {
 
 func (h *Handler) RedeemReward(c *gin.Context) {
 	var req struct {
-		RewardID uint `json:"reward_id"`
-		Cost     int  `json:"cost"`
+		RewardID    uint   `json:"reward_id"`
+		RewardTitle string `json:"reward_title"`
+		Cost        int    `json:"cost"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -173,12 +174,30 @@ func (h *Handler) RedeemReward(c *gin.Context) {
 		return
 	}
 
-	err := h.taskService.RedeemReward(userID.(uint), req.Cost)
+	err := h.taskService.RedeemReward(userID.(uint), req.RewardID, req.RewardTitle, req.Cost)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient points or error occurred"})
+		log.Printf("Error redeeming reward: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "redeemed"})
+}
+
+func (h *Handler) GetRedemptions(c *gin.Context) {
+	familyID, exists := c.Get("family_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	redemptions, err := h.taskService.GetRedemptionsByFamily(familyID.(uint))
+	if err != nil {
+		log.Printf("Error getting redemptions: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get redemptions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"redemptions": redemptions})
 }
 
 // Auth Handlers

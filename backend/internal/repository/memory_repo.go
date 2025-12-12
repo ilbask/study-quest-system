@@ -37,6 +37,12 @@ type ISessionRepository interface {
 	DeleteSession(token string) error
 }
 
+type IRedemptionRepository interface {
+	CreateRedemption(redemption *model.Redemption) error
+	GetRedemptionsByFamily(familyID uint) ([]model.Redemption, error)
+	GetRedemptionsByStudent(studentID uint) ([]model.Redemption, error)
+}
+
 // Memory Implementation
 type MemoryTaskRepository struct {
 	tasks    map[uint]*model.Task
@@ -363,5 +369,53 @@ func (r *MemorySessionRepository) DeleteSession(token string) error {
 	defer r.mu.Unlock()
 	delete(r.sessions, token)
 	return nil
+}
+
+// MemoryRedemptionRepository
+type MemoryRedemptionRepository struct {
+	redemptions map[uint]*model.Redemption
+	idCounter   uint
+	mu          sync.Mutex
+}
+
+func NewMemoryRedemptionRepository() *MemoryRedemptionRepository {
+	return &MemoryRedemptionRepository{
+		redemptions: make(map[uint]*model.Redemption),
+		idCounter:   1,
+	}
+}
+
+func (r *MemoryRedemptionRepository) CreateRedemption(redemption *model.Redemption) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	redemption.ID = r.idCounter
+	r.idCounter++
+	redemption.CreatedAt = time.Now()
+	r.redemptions[redemption.ID] = redemption
+	return nil
+}
+
+func (r *MemoryRedemptionRepository) GetRedemptionsByFamily(familyID uint) ([]model.Redemption, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var result []model.Redemption
+	for _, redemption := range r.redemptions {
+		// We need to check if the student belongs to the family
+		// For now, we'll just return all redemptions and filter in service layer
+		result = append(result, *redemption)
+	}
+	return result, nil
+}
+
+func (r *MemoryRedemptionRepository) GetRedemptionsByStudent(studentID uint) ([]model.Redemption, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var result []model.Redemption
+	for _, redemption := range r.redemptions {
+		if redemption.StudentID == studentID {
+			result = append(result, *redemption)
+		}
+	}
+	return result, nil
 }
 

@@ -25,17 +25,18 @@ func main() {
 		log.Printf("Failed to connect to MySQL: %v", err)
 		log.Println("Falling back to In-Memory mode...")
 		
-		// Fallback to memory repositories
-		taskRepo := repository.NewMemoryTaskRepository()
-		userRepo := repository.NewMemoryUserRepository()
-		sessionRepo := repository.NewMemorySessionRepository()
-		
-		taskService := service.NewTaskService(taskRepo, userRepo)
-		authService := service.NewAuthService(userRepo, sessionRepo)
-		h := handler.NewHandler(taskService, authService)
-		
-		startServer(h, cfg.Server.Port)
-		return
+	// Fallback to memory repositories
+	taskRepo := repository.NewMemoryTaskRepository()
+	userRepo := repository.NewMemoryUserRepository()
+	sessionRepo := repository.NewMemorySessionRepository()
+	redemptionRepo := repository.NewMemoryRedemptionRepository()
+	
+	taskService := service.NewTaskService(taskRepo, userRepo, redemptionRepo)
+	authService := service.NewAuthService(userRepo, sessionRepo)
+	h := handler.NewHandler(taskService, authService)
+	
+	startServer(h, cfg.Server.Port)
+	return
 	}
 
 	log.Println("Connected to MySQL successfully!")
@@ -55,9 +56,10 @@ func main() {
 	taskRepo := repository.NewMySQLTaskRepository(db)
 	userRepo := repository.NewMySQLUserRepository(db)
 	sessionRepo := repository.NewMySQLSessionRepository(db)
+	redemptionRepo := repository.NewMySQLRedemptionRepository(db)
 
 	// 6. Initialize Services
-	taskService := service.NewTaskService(taskRepo, userRepo)
+	taskService := service.NewTaskService(taskRepo, userRepo, redemptionRepo)
 	authService := service.NewAuthService(userRepo, sessionRepo)
 	
 	// 7. Initialize Handlers
@@ -112,11 +114,12 @@ func startServer(h *handler.Handler, port string) {
 		// Profile
 		protected.GET("/profile", h.GetProfile)
 		
-		// Rewards
-		protected.POST("/rewards/redeem", h.RedeemReward)
-		
-		// Students
-		protected.GET("/students", h.GetStudentList)
+	// Rewards
+	protected.POST("/rewards/redeem", h.RedeemReward)
+	protected.GET("/redemptions", h.GetRedemptions)
+	
+	// Students
+	protected.GET("/students", h.GetStudentList)
 	}
 
 	// Start Server

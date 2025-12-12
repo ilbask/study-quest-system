@@ -45,9 +45,12 @@ type Reward struct {
 
 type Redemption struct {
 	gorm.Model
-	StudentID uint `json:"student_id"`
-	RewardID  uint `json:"reward_id"`
-	Cost      int  `json:"cost"`
+	StudentID   uint   `json:"student_id"`
+	RewardID    uint   `json:"reward_id"`
+	RewardTitle string `json:"reward_title"` // Store title for display
+	Cost        int    `json:"cost"`
+	Student     User   `json:"student" gorm:"foreignKey:StudentID"`
+	Reward      Reward `json:"reward" gorm:"foreignKey:RewardID"`
 }
 
 type AppConfig struct {

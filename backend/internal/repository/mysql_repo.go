@@ -143,3 +143,35 @@ func (r *MySQLSessionRepository) DeleteSession(token string) error {
 	return r.db.Where("token = ?", token).Delete(&model.Session{}).Error
 }
 
+// MySQLRedemptionRepository
+type MySQLRedemptionRepository struct {
+	db *gorm.DB
+}
+
+func NewMySQLRedemptionRepository(db *gorm.DB) *MySQLRedemptionRepository {
+	return &MySQLRedemptionRepository{db: db}
+}
+
+func (r *MySQLRedemptionRepository) CreateRedemption(redemption *model.Redemption) error {
+	return r.db.Create(redemption).Error
+}
+
+func (r *MySQLRedemptionRepository) GetRedemptionsByFamily(familyID uint) ([]model.Redemption, error) {
+	var redemptions []model.Redemption
+	err := r.db.Preload("Student").Preload("Reward").
+		Joins("JOIN users ON users.id = redemptions.student_id").
+		Where("users.family_id = ?", familyID).
+		Order("redemptions.created_at DESC").
+		Find(&redemptions).Error
+	return redemptions, err
+}
+
+func (r *MySQLRedemptionRepository) GetRedemptionsByStudent(studentID uint) ([]model.Redemption, error) {
+	var redemptions []model.Redemption
+	err := r.db.Preload("Student").Preload("Reward").
+		Where("student_id = ?", studentID).
+		Order("created_at DESC").
+		Find(&redemptions).Error
+	return redemptions, err
+}
+

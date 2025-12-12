@@ -11,14 +11,16 @@ import (
 )
 
 type TaskService struct {
-	taskRepo repository.ITaskRepository
-	userRepo repository.IUserRepository
+	taskRepo       repository.ITaskRepository
+	userRepo       repository.IUserRepository
+	redemptionRepo repository.IRedemptionRepository
 }
 
-func NewTaskService(taskRepo repository.ITaskRepository, userRepo repository.IUserRepository) *TaskService {
+func NewTaskService(taskRepo repository.ITaskRepository, userRepo repository.IUserRepository, redemptionRepo repository.IRedemptionRepository) *TaskService {
 	return &TaskService{
-		taskRepo: taskRepo,
-		userRepo: userRepo,
+		taskRepo:       taskRepo,
+		userRepo:       userRepo,
+		redemptionRepo: redemptionRepo,
 	}
 }
 
@@ -115,7 +117,7 @@ func (s *TaskService) GetUserProfile(userID uint) (*model.User, error) {
 	return s.userRepo.GetUser(userID)
 }
 
-func (s *TaskService) RedeemReward(studentID uint, rewardCost int) error {
+func (s *TaskService) RedeemReward(studentID uint, rewardID uint, rewardTitle string, rewardCost int) error {
 	// 1. Check if user has enough points
 	user, err := s.userRepo.GetUser(studentID)
 	if err != nil {
@@ -123,11 +125,32 @@ func (s *TaskService) RedeemReward(studentID uint, rewardCost int) error {
 	}
 
 	if user.Points < rewardCost {
+		return errors.New("insufficient points")
+	}
+
+	// 2. Create redemption record
+	redemption := &model.Redemption{
+		StudentID:   studentID,
+		RewardID:    rewardID,
+		RewardTitle: rewardTitle,
+		Cost:        rewardCost,
+	}
+	err = s.redemptionRepo.CreateRedemption(redemption)
+	if err != nil {
+		log.Printf("Failed to create redemption record: %v", err)
 		return err
 	}
 
-	// 2. Deduct points
+	// 3. Deduct points
 	return s.userRepo.AddPoints(studentID, -rewardCost)
+}
+
+func (s *TaskService) GetRedemptionsByFamily(familyID uint) ([]model.Redemption, error) {
+	return s.redemptionRepo.GetRedemptionsByFamily(familyID)
+}
+
+func (s *TaskService) GetRedemptionsByStudent(studentID uint) ([]model.Redemption, error) {
+	return s.redemptionRepo.GetRedemptionsByStudent(studentID)
 }
 
 func (s *TaskService) GetStudentsByFamily(familyID uint) ([]model.User, error) {

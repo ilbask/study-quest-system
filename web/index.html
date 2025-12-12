@@ -338,6 +338,11 @@
             <h2>家庭成员 👨‍👩‍👧‍👦</h2>
             <ul class="task-list" id="student-list"></ul>
         </div>
+
+        <div class="card">
+            <h2>兑换记录 🎁</h2>
+            <ul class="task-list" id="redemption-list"></ul>
+        </div>
     </div>
 
     <!-- Ranking View -->
@@ -559,6 +564,12 @@
             });
             const students = await studentsRes.json();
             renderStudentList(students);
+
+            const redemptionsRes = await fetch(`${API_BASE}/redemptions`, {
+                headers: {'Authorization': authToken}
+            });
+            const redemptions = await redemptionsRes.json();
+            renderRedemptionList(redemptions.redemptions || []);
         } catch (e) {
             console.error("Failed to load parent data", e);
         }
@@ -624,7 +635,7 @@
                     <h3>${item.title}</h3>
                     <span class="task-points" style="color:orange">-${item.cost} 积分</span>
                 </div>
-                <button class="btn btn-success" onclick="redeem(${item.id}, ${item.cost})">兑换</button>
+                <button class="btn btn-success" onclick="redeem(${item.id}, '${item.title}', ${item.cost})">兑换</button>
             `;
             list.appendChild(li);
         });
@@ -670,6 +681,29 @@
                     <span>年级: ${student.grade}</span>
                 </div>
                 <div class="ranking-points">${student.points} 积分</div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderRedemptionList(redemptions) {
+        const list = document.getElementById('redemption-list');
+        list.innerHTML = '';
+        if (!redemptions || redemptions.length === 0) {
+            list.innerHTML = '<li class="task-item">暂无兑换记录</li>';
+            return;
+        }
+        redemptions.forEach(redemption => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            const date = new Date(redemption.created_at).toLocaleString('zh-CN');
+            const studentName = redemption.student ? redemption.student.real_name || redemption.student.username : '未知学生';
+            li.innerHTML = `
+                <div class="task-info">
+                    <h3>${redemption.reward_title}</h3>
+                    <span>${studentName} - ${date}</span>
+                </div>
+                <div class="ranking-points" style="color: orange;">-${redemption.cost} 积分</div>
             `;
             list.appendChild(li);
         });
@@ -753,19 +787,21 @@
     }
     window.createTask = createTask;
 
-    async function redeem(id, cost) {
+    async function redeem(id, title, cost) {
         try {
+            console.log('Redeeming:', {reward_id: id, reward_title: title, cost: cost});
             const response = await fetch(`${API_BASE}/rewards/redeem`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'Authorization': authToken},
-                body: JSON.stringify({reward_id: id, cost: cost})
+                body: JSON.stringify({reward_id: id, reward_title: title, cost: cost})
             });
             
             if (response.ok) {
                 alert('兑换成功！请找家长领取奖励。');
                 loadStudentData();
             } else {
-                alert('积分不足，无法兑换！');
+                const error = await response.json();
+                alert(error.error || '积分不足，无法兑换！');
             }
         } catch (e) {
             console.error('Redeem failed', e);
