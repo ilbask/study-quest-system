@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log"
 	"study-quest-backend/internal/model"
 	"study-quest-backend/internal/repository"
 	"time"
@@ -39,27 +40,54 @@ func (s *TaskService) CreateTask(title string, points int, familyID uint) error 
 	// Create task
 	err := s.taskRepo.CreateTask(task)
 	if err != nil {
+		log.Printf("Error creating task: %v", err)
 		return err
 	}
+	
+	log.Printf("Task created with ID: %d, Title: %s, Points: %d", task.ID, title, points)
 	
 	// Assign to all students in the family
 	students, err := s.userRepo.GetStudentsByFamily(familyID)
 	if err != nil {
+		log.Printf("Error getting students for family %d: %v", familyID, err)
 		return err
 	}
 	
+	log.Printf("Found %d students in family %d", len(students), familyID)
+	
 	for _, student := range students {
+		log.Printf("Assigning task %d to student %d (%s)", task.ID, student.ID, student.Username)
 		err := s.taskRepo.AssignTaskToStudent(student.ID, task.ID)
 		if err != nil {
+			log.Printf("Error assigning task to student %d: %v", student.ID, err)
 			return err
 		}
 	}
 	
+	log.Printf("Task %d assigned to all students successfully", task.ID)
 	return nil
 }
 
 func (s *TaskService) SubmitTask(studentID uint, taskID uint) error {
 	return s.taskRepo.SubmitTask(studentID, taskID)
+}
+
+func (s *TaskService) SubmitTaskByLogID(logID uint, studentID uint) error {
+	// Verify the log belongs to this student
+	taskLog, err := s.taskRepo.GetTaskLog(logID)
+	if err != nil {
+		return err
+	}
+	
+	if taskLog.StudentID != studentID {
+		return errors.New("permission denied")
+	}
+	
+	if taskLog.Status != 0 {
+		return errors.New("task already submitted or completed")
+	}
+	
+	return s.taskRepo.SubmitTaskByLogID(logID)
 }
 
 func (s *TaskService) ApproveTask(logID uint) error {

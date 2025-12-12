@@ -97,6 +97,15 @@ func (r *MySQLTaskRepository) SubmitTask(studentID uint, taskID uint) error {
 		}).Error
 }
 
+func (r *MySQLTaskRepository) SubmitTaskByLogID(logID uint) error {
+	return r.db.Model(&model.TaskLog{}).
+		Where("id = ? AND status = ?", logID, 0).
+		Updates(map[string]interface{}{
+			"status":       1,
+			"submitted_at": gorm.Expr("NOW()"),
+		}).Error
+}
+
 func (r *MySQLTaskRepository) ApproveTask(logID uint) error {
 	return r.db.Model(&model.TaskLog{}).
 		Where("id = ?", logID).

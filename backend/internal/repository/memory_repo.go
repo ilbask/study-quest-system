@@ -17,6 +17,7 @@ type ITaskRepository interface {
 	CreateTask(task *model.Task) error
 	AssignTaskToStudent(studentID uint, taskID uint) error
 	SubmitTask(studentID uint, taskID uint) error
+	SubmitTaskByLogID(logID uint) error
 	ApproveTask(logID uint) error
 	RejectTask(logID uint) error
 }
@@ -135,6 +136,20 @@ func (r *MemoryTaskRepository) SubmitTask(studentID uint, taskID uint) error {
 		}
 	}
 	return errors.New("task not found or not in todo state")
+}
+
+func (r *MemoryTaskRepository) SubmitTaskByLogID(logID uint) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if log, ok := r.taskLogs[logID]; ok {
+		if log.Status != 0 {
+			return errors.New("task already submitted or completed")
+		}
+		log.Status = 1 // Pending
+		log.SubmittedAt = time.Now()
+		return nil
+	}
+	return errors.New("task log not found")
 }
 
 func (r *MemoryTaskRepository) ApproveTask(logID uint) error {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"study-quest-backend/internal/service"
 
@@ -103,7 +104,7 @@ func (h *Handler) CreateTask(c *gin.Context) {
 
 func (h *Handler) SubmitTask(c *gin.Context) {
 	var req struct {
-		TaskID uint `json:"task_id"`
+		TaskID uint `json:"task_id"` // This is actually task_log ID from frontend
 	}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -116,7 +117,14 @@ func (h *Handler) SubmitTask(c *gin.Context) {
 		return
 	}
 	
-	h.taskService.SubmitTask(userID.(uint), req.TaskID)
+	log.Printf("Submitting task_log ID %d for user %d", req.TaskID, userID.(uint))
+	
+	err := h.taskService.SubmitTaskByLogID(req.TaskID, userID.(uint))
+	if err != nil {
+		log.Printf("Error submitting task: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "submitted"})
 }
 
